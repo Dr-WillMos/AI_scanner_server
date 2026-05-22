@@ -1,0 +1,19 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Java
+*.java text diff=java
+*.xml text
+*.yml text
+*.yaml text
+*.properties text
+
+# Scripts
+*.sh text eol=lf
+*.py text eol=lf
+
+# Binary
+*.jar binary
+*.class binary
+*.png binary
+*.jpg binary

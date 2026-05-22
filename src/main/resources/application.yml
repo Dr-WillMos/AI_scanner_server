@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: aiscanner-server
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/aiscanner?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 30000
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
+      connect-timeout: 5000ms
+      timeout: 3000ms
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.example.aiscanner_server.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    jdbc-type-for-null: NULL
+    default-statement-timeout: 30
+
+# rocketmq — 暂时禁用，需使用时取消注释
+# rocketmq:
+#   name-server: ${ROCKETMQ_NAMESRV:localhost:9876}
+#   producer:
+#     group: aiscanner-producer
+
+ai:
+  service:
+    url: ${AI_SERVICE_URL:http://localhost:8000} # Py端口
+    timeout: 30s
+
+server:
+  port: ${SERVER_PORT:8080}   # java端口

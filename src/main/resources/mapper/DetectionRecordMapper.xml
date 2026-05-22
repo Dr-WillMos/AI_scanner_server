@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.aiscanner_server.mapper.DetectionRecordMapper">
+
+    <resultMap id="BaseResultMap" type="org.example.aiscanner_server.model.entity.DetectionRecord">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="author_id" property="authorId"/>
+        <result column="risk_level" property="riskLevel"/>
+        <result column="score" property="score"/>
+        <result column="raw_ai_result" property="rawAiResult"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_detection_record (device_id, author_id, risk_level, score, raw_ai_result, created_at)
+        VALUES (#{deviceId}, #{authorId}, #{riskLevel}, #{score}, #{rawAiResult}, NOW())
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT id, device_id, author_id, risk_level, score, raw_ai_result, created_at
+        FROM t_detection_record
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT id, device_id, author_id, risk_level, score, raw_ai_result, created_at
+        FROM t_detection_record
+        WHERE device_id = #{deviceId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByAuthorId" resultMap="BaseResultMap">
+        SELECT id, device_id, author_id, risk_level, score, raw_ai_result, created_at
+        FROM t_detection_record
+        WHERE author_id = #{authorId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, device_id, author_id, risk_level, score, raw_ai_result, created_at
+        FROM t_detection_record
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- Lightweight result map for history queries (omits raw_ai_result) -->
+    <resultMap id="HistorySummaryResultMap" type="org.example.aiscanner_server.model.entity.DetectionRecord">
+        <id column="id" property="id"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="author_id" property="authorId"/>
+        <result column="risk_level" property="riskLevel"/>
+        <result column="score" property="score"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="selectByDeviceIdAfterId" resultMap="HistorySummaryResultMap">
+        SELECT id, device_id, author_id, risk_level, score, created_at
+        FROM t_detection_record
+        WHERE device_id = #{deviceId}
+          AND id > #{afterId}
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByDeviceIdPaged" resultMap="HistorySummaryResultMap">
+        SELECT id, device_id, author_id, risk_level, score, created_at
+        FROM t_detection_record
+        WHERE device_id = #{deviceId}
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countByDeviceId" resultType="long">
+        SELECT COUNT(*)
+        FROM t_detection_record
+        WHERE device_id = #{deviceId}
+    </select>
+
+</mapper>
