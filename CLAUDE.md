@@ -26,9 +26,17 @@ mysql -u root -p < src/main/resources/sql/init.sql
 ```
 Client (mobile app)
     │
+    ▼  X-API-Key header required (except /actuator/**)
+┌──────────────────────────────────────┐
+│  ApiKeyFilter (Spring Security)       │
+│  Stateless, no sessions, CSRF disabled│
+└──────────────────────────────────────┘
+    │
     ▼
 POST /api/v1/detect                    (video upload + detection)
+GET /api/v1/history                    (detection history, cursor or offset pagination)
 GET/POST/DELETE /api/v1/blacklist/{authority|global|temp}  (blacklist CRUD)
+GET /actuator/health                   (no auth — AI service health check)
     │
     ▼
 Spring Boot Controller Layer
@@ -60,6 +68,26 @@ Spring Boot Controller Layer
 6. If result is HIGH, **auto-add author to temp blacklist** with 24h TTL (`SETEX blacklist:temp:{authorId} 86400 <reason>`)
 7. Return `DetectResponse` (now includes `source` field on blacklist hits) wrapped in `ApiResponse.ok()`
 
+## Security (API Key Authentication)
+
+Spring Security enforces API key auth on all business endpoints via `ApiKeyFilter`:
+
+- Clients pass `X-API-Key` header on every request
+- `/actuator/**` endpoints are **permitAll** (no key needed) — used for health checks and monitoring
+- All other endpoints require `ROLE_API_CLIENT` authority, which the filter grants on valid key match
+- Session management is **stateless** (`SessionCreationPolicy.STATELESS`), CSRF is disabled
+- Invalid/missing key → `401` with JSON body `{"code":401,"message":"Missing or invalid API key"}`
+- The API key is configured via `api.key` property (env `API_KEY`, default `changeme`)
+
+## History Endpoint
+
+`GET /api/v1/history?deviceId={id}&afterId={id}&page={n}&size={n}` — query detection history for a device:
+
+- **Cursor-based** (incremental sync): pass `afterId` — fetches records after that ID. Ignores `page`. Returns `size+1` internally to detect `hasMore`.
+- **Offset-based** (page browsing): omit `afterId` — uses `page` and `size` for traditional pagination.
+- `size` clamped to 1–100 (default 20), `page` minimum 1.
+- `HistoryService` calls `DetectionRecordMapper` methods: `countByDeviceId`, `selectByDeviceIdAfterId`, `selectByDeviceIdPaged`.
+
 ## Key Service Boundaries
 
 - **BlacklistService** — Manages 3 Redis blacklists via `StringRedisTemplate`:
@@ -72,6 +100,8 @@ Spring Boot Controller Layer
 - **DetectionService** — orchestrates: blacklist check → AI call → risk calc → DB insert. Constructor-injected dependencies.
 - **AiClient** — `RestClient` HTTP client. Sends `MultipartFile` bytes as `ByteArrayResource`. Exception → RuntimeException.
 - **RiskCalculator** — `@Component`, pure function. Returns `record Result(RiskLevel riskLevel, double score, String reason)`.
+- **HistoryService** — Queries `t_detection_record` by deviceId. Two strategies: cursor-based incremental sync (`afterId` param) and offset-based page browsing (`page`/`size`). Uses `HistoryItem.from(record)` DTO mapping.
+- **AIHealthIndicator** — Spring Boot Actuator `HealthIndicator`. Pings AI service root URL via `aiRestClient` using `exchange()` (treats any HTTP response, even 404, as reachable). Only connection-level failures report `DOWN`. Exposed at `/actuator/health` (no auth required).
 
 ## API Response Convention
 
@@ -90,13 +120,35 @@ All endpoints return `ApiResponse<T>` (`@JsonInclude(NON_NULL)`): `{ "code": 200
 
 ## Configuration
 
-- `application.yml` — main config with env-var placeholders (`DB_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `AI_SERVICE_URL`, `SERVER_PORT`)
-- `application-dev.yml` — dev overrides with plaintext defaults, DEBUG logging on `org.example.aiscanner_server`
+- `application.yml` — main config with env-var placeholders (`DB_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `AI_SERVICE_URL`, `SERVER_PORT`, `API_KEY`)
+- `application-dev.yml` — dev overrides with plaintext defaults (api.key=dev-api-key-123), DEBUG logging on `org.example.aiscanner_server`
 - MyBatis: `map-underscore-to-camel-case: true`, mapper XML in `classpath:mapper/*.xml`
 - Multipart: max file size 10MB
 - HikariCP pool: min-idle 5, max 20
+- `api.key` — API key for `X-API-Key` header auth (env `API_KEY`, default `changeme`)
+- `management.endpoints.web.exposure.include: health,info` — Actuator endpoints exposed without auth
+- `ai.service.timeout` — connect and read timeout for AI service HTTP client (default 30s)
 
-## Integration Test
+## Testing
+
+### Unit Tests
+
+- **JUnit 5 + Mockito** — `@ExtendWith(MockitoExtension.class)` for service-layer tests
+- Mock dependencies with `@Mock`, inject real `RiskCalculator` (pure function, trivial to construct)
+- `ApiKeyFilter` test uses reflection to set `apiKey` field (avoids Spring context for speed)
+
+### Web Slice Tests (`@WebMvcTest`)
+
+- Test a single controller with mocked beans via `@MockitoBean`
+- **Must explicitly `@Import({SecurityConfig.class, ApiKeyFilter.class})`** — Spring Security is not auto-configured in `@WebMvcTest` slices
+- The convention is to use `"test-api-key"` as the API key value in test assertions
+
+### Full Integration Tests (`@SpringBootTest`)
+
+- Use `@AutoConfigureMockMvc` + `@MockitoBean` to mock infrastructure beans (`RedisConnectionFactory`, services) so Redis/MySQL aren't needed
+- Verify the full filter chain + controller interaction
+
+## Integration Test (Python)
 
 `test_aiscanner.py` — Python script that starts a Flask mock AI service (port 8000), seeds Redis with 5 blacklist entries, then runs end-to-end tests: blacklist CRUD, blacklist short-circuit, keyword hit, scoring boundary values, missing parameter errors. Run after starting the Spring Boot app with dev profile.
 
