@@ -39,6 +39,10 @@ build/
 src/main/resources/application-dev.yml
 src/main/resources/application-prod.yml
 
+### Frontend ###
+aiscanner-admin/node_modules/
+aiscanner-admin/dist/
+
 ### OS files ###
 .DS_Store
 Thumbs.db

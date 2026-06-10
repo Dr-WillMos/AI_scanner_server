@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.aiscanner_server.client.AiClient;
 import org.example.aiscanner_server.mapper.DetectionRecordMapper;
+import org.example.aiscanner_server.metrics.DetectionMetrics;
 import org.example.aiscanner_server.model.dto.AiResult;
 import org.example.aiscanner_server.model.dto.DetectResponse;
 import org.example.aiscanner_server.model.entity.DetectionRecord;
@@ -22,25 +23,31 @@ public class DetectionService {
     private final RiskCalculator riskCalculator;
     private final DetectionRecordMapper mapper;
     private final ObjectMapper objectMapper;
+    private final DetectionMetrics metrics;
 
     public DetectionService(BlacklistService blacklistService, AiClient aiClient,
                             RiskCalculator riskCalculator, DetectionRecordMapper mapper,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper, DetectionMetrics metrics) {
         this.blacklistService = blacklistService;
         this.aiClient = aiClient;
         this.riskCalculator = riskCalculator;
         this.mapper = mapper;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     public DetectResponse detect(String deviceId, String authorId, MultipartFile video) {
         BlacklistService.BlacklistHit hit = blacklistService.checkBlacklist(authorId);
         if (hit.hit()) {
             log.info("黑名单命中, authorId={}, source={}", authorId, hit.source());
+            metrics.recordBlacklistHit();
+            metrics.recordDetectionBlacklisted();
             return DetectResponse.blacklisted(hit.source(), hit.reason());
         }
 
+        var aiTimer = metrics.startAiTimer();
         AiResult aiResult = aiClient.analyze(video);
+        metrics.stopAiTimer(aiTimer);
         log.info("AI 分析完成, authorId={}, keywordHit={}, aiGlitchProb={}, violenceProb={}",
                 authorId, aiResult.isKeywordHit(), aiResult.getAiGlitchProb(), aiResult.getViolenceProb());
 
@@ -54,6 +61,7 @@ public class DetectionService {
         record.setScore(calcResult.score());
         record.setRawAiResult(toJson(aiResult));
         mapper.insert(record);
+        metrics.recordDetection(calcResult.riskLevel());
 
         log.info("检测记录已保存, id={}, authorId={}, riskLevel={}",
                 record.getId(), authorId, calcResult.riskLevel());

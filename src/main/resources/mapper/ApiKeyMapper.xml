@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.aiscanner_server.mapper.ApiKeyMapper">
+
+    <resultMap id="BaseResultMap" type="org.example.aiscanner_server.model.entity.ApiKey">
+        <id column="id" property="id"/>
+        <result column="key_value" property="keyValue"/>
+        <result column="key_name" property="keyName"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="permissions" property="permissions"/>
+        <result column="status" property="status"/>
+        <result column="rate_limit" property="rateLimit"/>
+        <result column="last_used_at" property="lastUsedAt"/>
+        <result column="expired_at" property="expiredAt"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="revoked_at" property="revokedAt"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_api_key (key_value, key_name, device_id, permissions, status,
+                               rate_limit, last_used_at, expired_at, created_at)
+        VALUES (#{keyValue}, #{keyName}, #{deviceId}, #{permissions}, #{status},
+                #{rateLimit}, #{lastUsedAt}, #{expiredAt}, NOW())
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT id, key_value, key_name, device_id, permissions, status,
+               rate_limit, last_used_at, expired_at, created_at, revoked_at
+        FROM t_api_key WHERE id = #{id}
+    </select>
+
+    <select id="selectByKeyValue" resultMap="BaseResultMap">
+        SELECT id, key_value, key_name, device_id, permissions, status,
+               rate_limit, last_used_at, expired_at, created_at, revoked_at
+        FROM t_api_key WHERE key_value = #{keyValue}
+    </select>
+
+    <select id="selectByDeviceId" resultMap="BaseResultMap">
+        SELECT id, key_value, key_name, device_id, permissions, status,
+               rate_limit, last_used_at, expired_at, created_at, revoked_at
+        FROM t_api_key WHERE device_id = #{deviceId}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, key_value, key_name, device_id, permissions, status,
+               rate_limit, last_used_at, expired_at, created_at, revoked_at
+        FROM t_api_key ORDER BY created_at DESC
+    </select>
+
+    <update id="update">
+        UPDATE t_api_key
+        SET key_name = #{keyName},
+            permissions = #{permissions},
+            rate_limit = #{rateLimit},
+            expired_at = #{expiredAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLastUsedAt">
+        UPDATE t_api_key SET last_used_at = #{lastUsedAt} WHERE id = #{id}
+    </update>
+
+    <update id="revoke">
+        UPDATE t_api_key SET status = 'REVOKED', revoked_at = #{revokedAt} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_api_key WHERE id = #{id}
+    </delete>
+
+</mapper>

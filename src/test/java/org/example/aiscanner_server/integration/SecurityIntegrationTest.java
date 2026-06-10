@@ -3,7 +3,10 @@ package org.example.aiscanner_server.integration;
 import org.example.aiscanner_server.config.SecurityConfig;
 import org.example.aiscanner_server.controller.BlacklistController;
 import org.example.aiscanner_server.security.ApiKeyFilter;
+import org.example.aiscanner_server.security.RateLimitFilter;
+import org.example.aiscanner_server.service.ApiKeyService;
 import org.example.aiscanner_server.service.BlacklistService;
+import org.example.aiscanner_server.service.RateLimitService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +26,9 @@ class SecurityIntegrationTest {
     @Autowired private MockMvc mvc;
 
     @MockitoBean private BlacklistService blacklistService;
+    @MockitoBean private ApiKeyService apiKeyService;
+    @MockitoBean private RateLimitService rateLimitService;
+    @MockitoBean private RateLimitFilter rateLimitFilter;
 
     @Test
     @DisplayName("POST /api/v1/detect 无 API Key → 401")
@@ -58,7 +64,7 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    @DisplayName("携带正确 API Key → 200")
+    @DisplayName("携带正确 Root Key → 200（root key 拥有 ADMIN 权限可访问黑名单）")
     void correctApiKey() throws Exception {
         mvc.perform(get("/api/v1/blacklist/authority")
                         .header("X-API-Key", "test-api-key"))

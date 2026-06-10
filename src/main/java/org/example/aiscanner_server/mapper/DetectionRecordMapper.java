@@ -2,6 +2,7 @@ package org.example.aiscanner_server.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.example.aiscanner_server.model.dto.HistoryFilter;
 import org.example.aiscanner_server.model.entity.DetectionRecord;
 
 import java.util.List;
@@ -31,4 +32,17 @@ public interface DetectionRecordMapper {
 
     /** Total count for a device */
     long countByDeviceId(@Param("deviceId") String deviceId);
+
+    /** Cursor-based with optional filters */
+    List<DetectionRecord> selectFiltered(@Param("filter") HistoryFilter filter,
+                                         @Param("afterId") Long afterId,
+                                         @Param("limit") int limit);
+
+    /** Offset-based with optional filters */
+    List<DetectionRecord> selectFilteredPaged(@Param("filter") HistoryFilter filter,
+                                              @Param("offset") int offset,
+                                              @Param("limit") int limit);
+
+    /** Total count matching the filter */
+    long countFiltered(@Param("filter") HistoryFilter filter);
 }
