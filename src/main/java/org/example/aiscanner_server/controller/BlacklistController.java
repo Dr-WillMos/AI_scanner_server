@@ -10,26 +10,26 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/v1/blacklist")
 public class BlacklistController {
-
+/**  Controller层是为了和用户对接的层，而实际上的业务逻辑写在Service层  */
     private final BlacklistService blacklistService;
 
     public BlacklistController(BlacklistService blacklistService) {
         this.blacklistService = blacklistService;
     }
 
-    // ── Authority ──────────────────────────────────────────
+    // ── 权威 ──────────────────────────────────────────
 
     @GetMapping("/authority")
     public ApiResponse<Set<String>> listAuthority() {
         return ApiResponse.ok(blacklistService.listAuthority());
-    }
+    }  //列出所有权威黑名单成员
 
     @GetMapping("/authority/{authorId}")
-    public ApiResponse<Map<String, Boolean>> checkAuthority(@PathVariable String authorId) {
+    public ApiResponse<Map<String, Boolean>> checkAuthority(@PathVariable String authorId) {  //这里转而调用黑名单Service的方法。
         return ApiResponse.ok(Map.of("blacklisted", blacklistService.isInAuthority(authorId)));
     }
 
-    @PostMapping("/authority")
+    @PostMapping("/authority")        //管理员用接口，添加黑名单
     public ApiResponse<Void> addToAuthority(@RequestBody Map<String, String> body) {
         String authorId = body.get("authorId");
         if (authorId == null || authorId.isBlank()) {
@@ -39,13 +39,13 @@ public class BlacklistController {
         return ApiResponse.ok();
     }
 
-    @DeleteMapping("/authority/{authorId}")
+    @DeleteMapping("/authority/{authorId}")   //同上，注解本身只代表 HTTP 方法类型，Spring只会根据Http请求的类型的不同调用不同的方法
     public ApiResponse<Void> removeFromAuthority(@PathVariable String authorId) {
         blacklistService.removeFromAuthority(authorId);
         return ApiResponse.ok();
     }
 
-    // ── Global ─────────────────────────────────────────────
+    // ── 全局黑名单，代码逻辑和上面的权威黑名单实际上没有什么不同。 ─────────────────────────────────────────────
 
     @GetMapping("/global")
     public ApiResponse<Set<String>> listGlobal() {
@@ -73,21 +73,21 @@ public class BlacklistController {
         return ApiResponse.ok();
     }
 
-    // ── Temp ───────────────────────────────────────────────
+    // ── 临时 ───────────────────────────────────────────────
 
     @GetMapping("/temp")
     public ApiResponse<Set<String>> listTemp() {
         return ApiResponse.ok(blacklistService.listTemp());
     }
 
-    @GetMapping("/temp/{authorId}")
+    @GetMapping("/temp/{authorId}")   //在临时黑名单中查询发布者ID和剩余封禁时间的接口
     public ApiResponse<Map<String, Object>> checkTemp(@PathVariable String authorId) {
         boolean blacklisted = blacklistService.isInTemp(authorId);
-        Long ttl = blacklisted ? blacklistService.getTempTtl(authorId) : null;
+        Long ttl = blacklisted ? blacklistService.getTempTtl(authorId) : null; //查询当前高危发布者在临时黑名单中的剩余封禁时间
         return ApiResponse.ok(Map.of("blacklisted", blacklisted, "ttlSeconds", ttl != null ? ttl : 0));
     }
 
-    @PostMapping("/temp")
+    @PostMapping("/temp")    //管理员手动管理临时黑名单
     public ApiResponse<Void> addToTemp(@RequestBody Map<String, String> body) {
         String authorId = body.get("authorId");
         if (authorId == null || authorId.isBlank()) {
@@ -104,9 +104,9 @@ public class BlacklistController {
         return ApiResponse.ok();
     }
 
-    // ── Convenience: check all ─────────────────────────────
+    // ── 查询 ─────────────────────────────
 
-    @GetMapping("/check/{authorId}")
+    @GetMapping("/check/{authorId}")//聚合查询三级黑名单的接口
     public ApiResponse<BlacklistService.BlacklistHit> checkAll(@PathVariable String authorId) {
         return ApiResponse.ok(blacklistService.checkBlacklist(authorId));
     }

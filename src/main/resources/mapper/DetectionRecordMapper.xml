@@ -78,4 +78,54 @@
         WHERE device_id = #{deviceId}
     </select>
 
+    <!-- Dynamic WHERE fragment shared by filtered queries -->
+    <sql id="filterConditions">
+        <if test="filter.deviceId != null and filter.deviceId != ''">
+            AND device_id = #{filter.deviceId}
+        </if>
+        <if test="filter.authorId != null and filter.authorId != ''">
+            AND author_id = #{filter.authorId}
+        </if>
+        <if test="filter.riskLevel != null">
+            AND risk_level = #{filter.riskLevel}
+        </if>
+        <if test="filter.startDate != null">
+            AND created_at >= #{filter.startDate}
+        </if>
+        <if test="filter.endDate != null">
+            AND created_at &lt;= #{filter.endDate}
+        </if>
+    </sql>
+
+    <select id="selectFiltered" resultMap="HistorySummaryResultMap">
+        SELECT id, device_id, author_id, risk_level, score, created_at
+        FROM t_detection_record
+        <where>
+            <include refid="filterConditions"/>
+            <if test="afterId != null">
+                AND id > #{afterId}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectFilteredPaged" resultMap="HistorySummaryResultMap">
+        SELECT id, device_id, author_id, risk_level, score, created_at
+        FROM t_detection_record
+        <where>
+            <include refid="filterConditions"/>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countFiltered" resultType="long">
+        SELECT COUNT(*)
+        FROM t_detection_record
+        <where>
+            <include refid="filterConditions"/>
+        </where>
+    </select>
+
 </mapper>

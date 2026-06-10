@@ -2,6 +2,7 @@ package org.example.aiscanner_server.service;
 
 import org.example.aiscanner_server.client.AiClient;
 import org.example.aiscanner_server.mapper.DetectionRecordMapper;
+import org.example.aiscanner_server.metrics.DetectionMetrics;
 import org.example.aiscanner_server.model.dto.AiResult;
 import org.example.aiscanner_server.model.entity.DetectionRecord;
 import org.example.aiscanner_server.model.enums.RiskLevel;
@@ -27,6 +28,7 @@ class DetectionServiceTest {
     @Mock private AiClient aiClient;
     @Mock private DetectionRecordMapper mapper;
     @Mock private MultipartFile video;
+    @Mock private DetectionMetrics metrics;
 
     private RiskCalculator riskCalculator;
     private DetectionService service;
@@ -35,7 +37,7 @@ class DetectionServiceTest {
     void setUp() {
         riskCalculator = new RiskCalculator();
         service = new DetectionService(blacklistService, aiClient, riskCalculator,
-                mapper, new ObjectMapper());
+                mapper, new ObjectMapper(), metrics);
     }
 
     @Test

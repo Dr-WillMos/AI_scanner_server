@@ -33,6 +33,9 @@ spring:
       connect-timeout: 5000ms
       timeout: 3000ms
 
+  flyway:
+    baseline-on-migrate: true
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: org.example.aiscanner_server.model.entity
@@ -41,6 +44,14 @@ mybatis:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
     jdbc-type-for-null: NULL
     default-statement-timeout: 30
+
+detect:
+  video-storage-dir: /tmp/aiscanner/videos
+
+rate-limit:
+  enabled: true
+  window-seconds: 60
+  default-limit: 20
 
 # rocketmq — 暂时禁用，需使用时取消注释
 # rocketmq:
@@ -51,7 +62,8 @@ mybatis:
 ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8001} # Py端口
-    timeout: 30s
+    connect-timeout: 5s
+    read-timeout: 30s
 
 server:
   port: ${SERVER_PORT:8080}   # java端口
@@ -63,4 +75,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always

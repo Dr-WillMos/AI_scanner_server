@@ -7,9 +7,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClient;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -32,7 +34,7 @@ class AIHealthIndicatorTest {
     void aiServiceUp() {
         when(restClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.retrieve()).thenReturn(responseSpec);
+        when(requestHeadersUriSpec.exchange(any())).thenReturn(null);
 
         var health = indicator.health();
 
@@ -45,7 +47,8 @@ class AIHealthIndicatorTest {
     void aiServiceDown() {
         when(restClient.get()).thenReturn(requestHeadersUriSpec);
         when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersUriSpec);
-        when(requestHeadersUriSpec.retrieve()).thenThrow(new RuntimeException("Connection refused"));
+        when(requestHeadersUriSpec.exchange(any()))
+                .thenThrow(new RuntimeException("Connection refused"));
 
         var health = indicator.health();
 
