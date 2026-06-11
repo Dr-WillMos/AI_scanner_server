@@ -1,5 +1,6 @@
 package org.example.aiscanner_server.service;
 
+import org.example.aiscanner_server.mapper.BlacklistMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.*;
 class BlacklistServiceTest {
 
     @Mock private StringRedisTemplate redisTemplate;
+    @Mock private BlacklistMapper blacklistMapper;
     @Mock private SetOperations<String, String> setOps;
     @Mock private ValueOperations<String, String> valueOps;
 
@@ -93,16 +95,20 @@ class BlacklistServiceTest {
     // ── Authority CRUD ──
 
     @Test
-    @DisplayName("addToAuthority 向 SET 添加 authorId")
+    @DisplayName("addToAuthority 写入 MySQL 并更新 Redis SET")
     void addToAuthority() {
-        service.addToAuthority("a1");
+        when(blacklistMapper.insert(any())).thenReturn(1);
+        service.addToAuthority("a1", "测试添加");
+        verify(blacklistMapper).insert(any());
         verify(setOps).add("blacklist:authority", "a1");
     }
 
     @Test
-    @DisplayName("removeFromAuthority 从 SET 移除 authorId")
+    @DisplayName("removeFromAuthority 从 MySQL 和 Redis SET 移除")
     void removeFromAuthority() {
+        when(blacklistMapper.deleteByAuthorAndType("a1", "AUTHORITY")).thenReturn(1);
         service.removeFromAuthority("a1");
+        verify(blacklistMapper).deleteByAuthorAndType("a1", "AUTHORITY");
         verify(setOps).remove("blacklist:authority", "a1");
     }
 
@@ -116,9 +122,11 @@ class BlacklistServiceTest {
     // ── Global CRUD ──
 
     @Test
-    @DisplayName("addToGlobal 向 SET 添加 authorId")
+    @DisplayName("addToGlobal 写入 MySQL 并更新 Redis SET")
     void addToGlobal() {
-        service.addToGlobal("a1");
+        when(blacklistMapper.insert(any())).thenReturn(1);
+        service.addToGlobal("a1", "测试添加");
+        verify(blacklistMapper).insert(any());
         verify(setOps).add("blacklist:global", "a1");
     }
 

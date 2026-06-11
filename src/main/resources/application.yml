@@ -1,6 +1,11 @@
 spring:
   application:
     name: aiscanner-server
+  mvc:
+    throw-exception-if-no-handler-found: true
+  web:
+    resources:
+      add-mappings: false
   servlet:
     multipart:
       max-file-size: 10MB
@@ -70,6 +75,10 @@ server:
 
 api:
   key: ${API_KEY:changeme}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
 
 management:
   endpoints:

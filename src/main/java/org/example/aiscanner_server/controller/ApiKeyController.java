@@ -1,16 +1,20 @@
 package org.example.aiscanner_server.controller;
 
 import org.example.aiscanner_server.common.ApiResponse;
+import org.example.aiscanner_server.model.dto.KeyCreateRequest;
 import org.example.aiscanner_server.model.dto.KeyInfo;
+import org.example.aiscanner_server.model.dto.KeyRegisterRequest;
 import org.example.aiscanner_server.model.dto.KeyRegisterResponse;
+import org.example.aiscanner_server.model.dto.KeyUpdateRequest;
 import org.example.aiscanner_server.model.entity.ApiKey;
 import org.example.aiscanner_server.service.ApiKeyService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+
+import jakarta.validation.Valid;
  /* 本Controller用于提供认证支持 */
 @RestController
 @RequestMapping("/api/v1/keys")
@@ -25,14 +29,10 @@ public class ApiKeyController {
     // ── 设备注册 ──────────────────────────────────
 
     @PostMapping("/register")
-    public ApiResponse<KeyRegisterResponse> register(@RequestBody Map<String, String> body) {
-        String deviceId = body.get("deviceId");
-        if (deviceId == null || deviceId.isBlank()) {
-            return ApiResponse.error(400, "deviceId 不能为空");
-        }
-        String deviceName = body.getOrDefault("deviceName", deviceId);  //Name是昵称，后者是ID识别符
-        ApiKey apiKey = apiKeyService.registerKey(deviceId, deviceName);
-        return ApiResponse.ok(new KeyRegisterResponse(apiKey.getKeyValue(), apiKey.getExpiredAt())); //返回注册后的key
+    public ApiResponse<KeyRegisterResponse> register(@Valid @RequestBody KeyRegisterRequest req) {
+        String deviceName = req.deviceName() != null ? req.deviceName() : req.deviceId();
+        ApiKey apiKey = apiKeyService.registerKey(req.deviceId(), deviceName);
+        return ApiResponse.ok(new KeyRegisterResponse(apiKey.getKeyValue(), apiKey.getExpiredAt()));
     }
 
     // ── 管理员：查询所有的已注册Key─────────────────────────────────
@@ -62,32 +62,22 @@ public class ApiKeyController {
     // ── 管理员：创建key ────────────────────────────────────
 
     @PostMapping
-    public ApiResponse<KeyRegisterResponse> create(@RequestBody Map<String, Object> body) {
-        String keyName = (String) body.getOrDefault("keyName", "手动创建");  //可以指定Key备注，如用途等
-        String permissions = (String) body.get("permissions");  //获取权限字符
-        Integer rateLimit = body.get("rateLimit") != null ? ((Number) body.get("rateLimit")).intValue() : null; //限流级，该Key单位时间内能调用的次数
-        LocalDateTime expiredAt = null;
-        if (body.get("expiredAt") != null) {
-            expiredAt = LocalDateTime.parse((String) body.get("expiredAt"));
-        }   //过期时间，如果不设定就是永不过期。
-        ApiKey apiKey = apiKeyService.createKey(keyName, permissions, rateLimit, expiredAt);
+    public ApiResponse<KeyRegisterResponse> create(@RequestBody KeyCreateRequest req) {
+        String keyName = req.keyName() != null ? req.keyName() : "手动创建";
+        LocalDateTime expiredAt = req.expiredAt() != null ? LocalDateTime.parse(req.expiredAt()) : null;
+        ApiKey apiKey = apiKeyService.createKey(keyName, req.permissions(), req.rateLimit(), expiredAt);
         return ApiResponse.ok(new KeyRegisterResponse(apiKey.getKeyValue(), apiKey.getExpiredAt()));
     }
 
     // ── 管理员：更新Key ────────────────────────────────────
 
     @PutMapping("/{id}")
-    public ApiResponse<Void> update(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        String keyName = (String) body.get("keyName");
-        String permissions = (String) body.get("permissions");
-        Integer rateLimit = body.get("rateLimit") != null ? ((Number) body.get("rateLimit")).intValue() : null;
+    public ApiResponse<Void> update(@PathVariable Long id, @RequestBody KeyUpdateRequest req) {
         LocalDateTime expiredAt = null;
-        if (body.containsKey("expiredAt") && body.get("expiredAt") != null) {
-            expiredAt = LocalDateTime.parse((String) body.get("expiredAt"));
-        } else if (body.containsKey("expiredAt") && body.get("expiredAt") == null) {
-            expiredAt = null; // 允许设置为永不过期
+        if (req.expiredAt() != null) {
+            expiredAt = LocalDateTime.parse(req.expiredAt());
         }
-        apiKeyService.updateKey(id, keyName, permissions, rateLimit, expiredAt);
+        apiKeyService.updateKey(id, req.keyName(), req.permissions(), req.rateLimit(), expiredAt);
         return ApiResponse.ok();
     }
 

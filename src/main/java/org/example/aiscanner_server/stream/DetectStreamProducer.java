@@ -7,7 +7,6 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.stereotype.Component;
 
-import javax.swing.*;
 import java.util.Map;
 /**查询流生产者*/
 /**redis stream没有rocketMQ的web管理界面，可以使用第三方工具如Redis Insight对消息队列进行查看和管理*/
