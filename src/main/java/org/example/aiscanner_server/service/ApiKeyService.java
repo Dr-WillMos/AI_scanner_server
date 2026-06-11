@@ -68,7 +68,7 @@ public class ApiKeyService {
      * Checks Redis cache first, falls back to MySQL.
      */
     public Optional<ApiKey> validateKey(String keyValue) {
-        // Try Redis cache first
+        // 先试Redis
         String cacheKey = CACHE_KEY_PREFIX + keyValue;
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey); //获取缓存的Json，其中的status就是需要用到的。

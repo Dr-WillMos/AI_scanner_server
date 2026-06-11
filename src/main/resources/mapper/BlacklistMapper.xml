@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.aiscanner_server.mapper.BlacklistMapper">
+
+    <resultMap id="BaseResultMap" type="org.example.aiscanner_server.model.entity.BlacklistEntry">
+        <id column="id" property="id"/>
+        <result column="author_id" property="authorId"/>
+        <result column="list_type" property="listType"/>
+        <result column="reason" property="reason"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_blacklist (author_id, list_type, reason, created_at)
+        VALUES (#{authorId}, #{listType}, #{reason}, NOW())
+    </insert>
+
+    <select id="selectByAuthorAndType" resultMap="BaseResultMap">
+        SELECT id, author_id, list_type, reason, created_at
+        FROM t_blacklist
+        WHERE author_id = #{authorId} AND list_type = #{listType}
+    </select>
+
+    <select id="selectByType" resultMap="BaseResultMap">
+        SELECT id, author_id, list_type, reason, created_at
+        FROM t_blacklist
+        WHERE list_type = #{listType}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, author_id, list_type, reason, created_at
+        FROM t_blacklist
+        ORDER BY list_type, created_at DESC
+    </select>
+
+    <delete id="deleteByAuthorAndType">
+        DELETE FROM t_blacklist
+        WHERE author_id = #{authorId} AND list_type = #{listType}
+    </delete>
+
+</mapper>

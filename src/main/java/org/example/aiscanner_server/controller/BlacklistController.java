@@ -1,11 +1,14 @@
 package org.example.aiscanner_server.controller;
 
 import org.example.aiscanner_server.common.ApiResponse;
+import org.example.aiscanner_server.model.dto.BlacklistAddRequest;
 import org.example.aiscanner_server.service.BlacklistService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.Set;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/blacklist")
@@ -29,13 +32,9 @@ public class BlacklistController {
         return ApiResponse.ok(Map.of("blacklisted", blacklistService.isInAuthority(authorId)));
     }
 
-    @PostMapping("/authority")        //管理员用接口，添加黑名单
-    public ApiResponse<Void> addToAuthority(@RequestBody Map<String, String> body) {
-        String authorId = body.get("authorId");
-        if (authorId == null || authorId.isBlank()) {
-            return ApiResponse.error(400, "authorId 不能为空");
-        }
-        blacklistService.addToAuthority(authorId);
+    @PostMapping("/authority")
+    public ApiResponse<Void> addToAuthority(@Valid @RequestBody BlacklistAddRequest req) {
+        blacklistService.addToAuthority(req.authorId(), req.reason());
         return ApiResponse.ok();
     }
 
@@ -58,12 +57,8 @@ public class BlacklistController {
     }
 
     @PostMapping("/global")
-    public ApiResponse<Void> addToGlobal(@RequestBody Map<String, String> body) {
-        String authorId = body.get("authorId");
-        if (authorId == null || authorId.isBlank()) {
-            return ApiResponse.error(400, "authorId 不能为空");
-        }
-        blacklistService.addToGlobal(authorId);
+    public ApiResponse<Void> addToGlobal(@Valid @RequestBody BlacklistAddRequest req) {
+        blacklistService.addToGlobal(req.authorId(), req.reason());
         return ApiResponse.ok();
     }
 
@@ -88,13 +83,9 @@ public class BlacklistController {
     }
 
     @PostMapping("/temp")    //管理员手动管理临时黑名单
-    public ApiResponse<Void> addToTemp(@RequestBody Map<String, String> body) {
-        String authorId = body.get("authorId");
-        if (authorId == null || authorId.isBlank()) {
-            return ApiResponse.error(400, "authorId 不能为空");
-        }
-        String reason = body.getOrDefault("reason", "手动添加");
-        blacklistService.addToTemp(authorId, reason);
+    public ApiResponse<Void> addToTemp(@Valid @RequestBody BlacklistAddRequest req) {
+        String reason = req.reason() != null ? req.reason() : "手动添加";
+        blacklistService.addToTemp(req.authorId(), reason);
         return ApiResponse.ok();
     }
 
